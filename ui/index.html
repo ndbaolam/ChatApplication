@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In & Sign Up</title>
+    <style>
+      /* Global styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f3f4f6;
+      }
+
+      .container {
+        width: 350px;
+        padding: 2em;
+        background: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      h2 {
+        color: #333;
+        margin-bottom: 1em;
+      }
+
+      .form-group {
+        margin-bottom: 1em;
+        text-align: left;
+      }
+
+      .form-group label {
+        font-size: 0.9em;
+        color: #555;
+        display: block;
+        margin-bottom: 0.3em;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.8em;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 0.8em;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        cursor: pointer;
+        margin-top: 0.5em;
+        color: white;
+      }
+
+      .btn-signin {
+        background-color: #4caf50;
+      }
+
+      .btn-signup {
+        background-color: #007bff;
+      }
+
+      .toggle {
+        margin-top: 1em;
+        color: #007bff;
+        font-size: 0.9em;
+        cursor: pointer;
+      }
+
+      .toggle:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id="signinForm">
+      <h2>Sign In</h2>
+      <form method="post" action="/sign-in">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-signin">Sign In</button>
+      </form>
+      <p class="toggle" onclick="toggleForm()">
+        Don't have an account? Sign up
+      </p>
+    </div>
+
+    <div class="container" id="signupForm" style="display: none">
+      <h2>Sign Up</h2>
+      <form method="post" action="/sign-up">
+        <div class="form-group">
+          <label for="new-username">username</label>
+          <input
+            type="username"
+            id="new-username"
+            name="username"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="new-password">Password</label>
+          <input
+            type="password"
+            id="new-password"
+            name="password"
+            placeholder="Create a password"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input
+            type="password"
+            id="confirm-password"
+            placeholder="Confirm your password"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-signup">Sign Up</button>
+      </form>
+      <p class="toggle" onclick="toggleForm()">
+        Already have an account? Sign in
+      </p>
+    </div>
+
+    <script>
+      function toggleForm() {
+        const signinForm = document.getElementById("signinForm");
+        const signupForm = document.getElementById("signupForm");
+        signinForm.style.display =
+          signinForm.style.display === "none" ? "block" : "none";
+        signupForm.style.display =
+          signupForm.style.display === "none" ? "block" : "none";
+      }
+
+      const form = document.querySelector("#signupForm form");
+      
+      form.addEventListener("submit", (event) => {
+        event.preventDefault(); // Prevent the default form submission
+
+        const formData = new FormData(form);
+        const actionUrl = form.action;
+        const method = form.method;
+
+        const data = new URLSearchParams();
+        formData.forEach((value, key) => {
+          data.append(key, value);
+        });
+
+        fetch(actionUrl, {
+          method: method,
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: data.toString(),
+        })
+          .then((response) => response.json())
+          .then((responseData) => {
+            alert(responseData.message);
+          })
+          .catch((error) => {
+            alert(error);
+            console.error("Error:", error);
+          });
+      });
+    </script>
+  </body>
+</html>

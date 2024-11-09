@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Information</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 80%;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #343a40;
+    }
+    .user-info, .group-requests, .online-users {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e9ecef;
+      border-radius: 8px;
+    }
+    .user-info h2, .group-requests h2, .online-users h2 {
+      margin-top: 0;
+    }
+    .user-info p, .group-requests ul, .online-users ul {
+      font-size: 1.1rem;
+    }
+    .user-info p {
+      margin: 10px 0;
+    }
+    .user-info .label {
+      font-weight: bold;
+    }
+    .group-requests ul, .online-users ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .group-requests li, .online-users li {
+      padding: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .group-requests li.pending {
+      color: #ffc107;
+    }
+    .group-requests li.approved {
+      color: #28a745;
+    }
+    .group-requests li button {
+      padding: 5px 10px;
+      margin-left: 10px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .group-requests li button.accept {
+      background-color: #28a745;
+      color: white;
+    }
+    .group-requests li button.decline {
+      background-color: #dc3545;
+      color: white;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      border: none;
+    }
+    .back-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>User Information</h1>
+
+    <!-- User Profile Information -->
+    <div class="user-info">
+      <h2>Profile Information</h2>
+      <p><span class="label">Username:</span> JohnDoe</p>
+      <p><span class="label">Current Group Chat:</span> Fun Group Chat</p>
+    </div>
+
+    <!-- Users Who Are Online -->
+    <div class="online-users">
+      <h2>Users Online</h2>
+      <ul>
+        <li>SarahLee</li>
+        <li>MikeTaylor</li>
+        <li>JaneSmith</li>
+      </ul>
+    </div>
+
+    <!-- User's Group Chat Requests -->
+    <div class="group-requests">
+      <h2>Requests to Join Group Chats</h2>
+      <ul>
+        <li class="pending">
+          <span><strong>Username:</strong> SarahLee <strong>Group:</strong> Tech Enthusiasts</span>
+          <div>
+            <button class="accept" onclick="acceptRequest('SarahLee', 'Tech Enthusiasts')">Accept</button>
+            <button class="decline" onclick="declineRequest('SarahLee', 'Tech Enthusiasts')">Decline</button>
+          </div>
+        </li>
+        <li class="pending">
+          <span><strong>Username:</strong> MikeTaylor <strong>Group:</strong> Music Lovers</span>
+          <div>
+            <button class="accept" onclick="acceptRequest('MikeTaylor', 'Music Lovers')">Accept</button>
+            <button class="decline" onclick="declineRequest('MikeTaylor', 'Music Lovers')">Decline</button>
+          </div>
+        </li>
+        <li class="approved">
+          <span><strong>Username:</strong> JaneSmith <strong>Group:</strong> Travel Buddies</span>
+          <div>Request Approved</div>
+        </li>
+      </ul>
+    </div>
+
+    <form action="/sign-out" method="get">
+      <button class="back-btn" type="submit">Sign Out</button>
+    </form>    
+  </div>
+
+  <script>
+    function acceptRequest(username, group) {      
+      alert(`Accepted request from ${username} to join ${group}`);      
+      removeRequest(username, group);
+    }
+
+    function declineRequest(username, group) {
+      alert(`Declined request from ${username} to join ${group}`);
+      removeRequest(username, group);
+    }
+
+    function removeRequest(username, group) {
+      const requests = document.querySelectorAll('.group-requests li');
+      requests.forEach(request => {
+        if (request.textContent.includes(username) && request.textContent.includes(group)) {
+          request.remove();
+        }
+      });
+    }    
+  </script>
+
+</body>
+</html>

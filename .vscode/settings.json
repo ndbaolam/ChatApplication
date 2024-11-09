@@ -1,0 +1,8 @@
+{
+  "C_Cpp.errorSquiggles": "disabled",
+  "files.associations": {
+    "datasource.c": "cpp",
+    "cmath": "c",
+    "authenticate.c": "cpp"
+  }
+}
