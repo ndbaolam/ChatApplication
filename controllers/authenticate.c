@@ -1,4 +1,4 @@
-//POST /sign-in
+// POST /sign-in
 void handleSignIn(const char *request, const int client_fd)
 {
   char username[256], password[256];
@@ -40,14 +40,39 @@ void handleSignIn(const char *request, const int client_fd)
     }
     else if (result == 0)
     {
-     snprintf(response, sizeof(response) - 1,
-              "HTTP/1.1 401 Unauthorized\r\n"
-              "Content-Type: text/html\r\n"
-              "Content-Length: 0\r\n"
-              "Location: /\r\n"
-              "Connection: close\r\n\r\n");
+      char *htmlServe = LoadContentFile("ui/401.html");
+      if (htmlServe != NULL)
+      {
+        // Calculate content length
+        int content_length = strlen(htmlServe);
 
-      send(client_fd, response, strlen(response), 0);
+        // Allocate a buffer for the entire HTTP response
+        char response[4096];
+
+        // Build the HTTP response headers
+        int header_length = snprintf(response, sizeof(response),
+                                     "HTTP/1.1 401 Unauthorized\r\n"
+                                     "Content-Type: text/html\r\n"
+                                     "Content-Length: %d\r\n"
+                                     "Connection: close\r\n\r\n",
+                                     content_length);
+
+        // Check if the response buffer can hold the headers and HTML content
+        if (header_length + content_length < sizeof(response))
+        {
+          // Append the HTML content to the response
+          strcpy(response + header_length, htmlServe);
+
+          // Send the response over the socket
+          send(client_fd, response, header_length + content_length, 0);
+        }
+        else
+        {
+          fprintf(stderr, "Response buffer too small to fit headers and content.\n");
+        }
+
+        free(htmlServe); // Free the HTML content buffer
+      }
     }
     else if (result == 1)
     {
@@ -60,7 +85,7 @@ void handleSignIn(const char *request, const int client_fd)
       sprintf(log, "USER %s HAS SIGNED IN", username);
       WriteLog(log);
 
-      RedirectRespose("user-info", username, client_fd);      
+      RedirectRespose("user-info", username, client_fd);
     }
   }
   else
@@ -69,57 +94,87 @@ void handleSignIn(const char *request, const int client_fd)
   }
 }
 
-//GET /sign-out
-void handleSignOut(const char *request, const int client_fd) {  
+// GET /sign-out
+void handleSignOut(const char *request, const int client_fd)
+{
   // Get the "token" cookie from the request
-  char *cookie = GetCookieFromRequest(request, "token");    
+  char *cookie = GetCookieFromRequest(request, "token");
 
   char response[1024] = {0};
   char cmd[1024];
 
-  if (!cookie) {
-    snprintf(response, sizeof(response) - 1,
-              "HTTP/1.1 401 Unauthorized\r\n"
-              "Content-Type: text/html\r\n"
-              "Content-Length: 0\r\n"
-              "Connection: close\r\n\r\n");
-    send(client_fd, response, strlen(response), 0);
-    return;
-  }  
+  if (!cookie)
+  {
+    char *htmlServe = LoadContentFile("ui/401.html");
+    if (htmlServe != NULL)
+    {
+      // Calculate content length
+      int content_length = strlen(htmlServe);
 
-  //remove s\r\n at the end  
-  cookie[sizeof(cookie) - 2]   = '\0';
+      // Allocate a buffer for the entire HTTP response
+      char response[4096];
+
+      // Build the HTTP response headers
+      int header_length = snprintf(response, sizeof(response),
+                                   "HTTP/1.1 401 Unauthorized\r\n"
+                                   "Content-Type: text/html\r\n"
+                                   "Content-Length: %d\r\n"
+                                   "Connection: close\r\n\r\n",
+                                   content_length);
+
+      // Check if the response buffer can hold the headers and HTML content
+      if (header_length + content_length < sizeof(response))
+      {
+        // Append the HTML content to the response
+        strcpy(response + header_length, htmlServe);
+
+        // Send the response over the socket
+        send(client_fd, response, header_length + content_length, 0);
+      }
+      else
+      {
+        fprintf(stderr, "Response buffer too small to fit headers and content.\n");
+      }
+
+      free(htmlServe); // Free the HTML content buffer
+    }
+    return;
+  }
+
+  // remove s\r\n at the end
+  cookie[sizeof(cookie) - 2] = '\0';
 
   snprintf(cmd, sizeof(cmd) - 1, "UPDATE users SET is_online='false' WHERE username='%s';", cookie);
   int result = ExecDBCommand(psql, cmd);
 
-  if (result == -1) {
+  if (result == -1)
+  {
     snprintf(response, sizeof(response) - 1,
-              "HTTP/1.1 500 Internal Server Error\r\n"
-              "Content-Type: text/html\r\n"
-              "Content-Length: 0\r\n"
-              "Connection: close\r\n\r\n");
+             "HTTP/1.1 500 Internal Server Error\r\n"
+             "Content-Type: text/html\r\n"
+             "Content-Length: 0\r\n"
+             "Connection: close\r\n\r\n");
     send(client_fd, response, strlen(response), 0);
     return;
   }
 
   char log[1024] = {0};
-  
+
   snprintf(log, sizeof(log), "USER %s HAS SIGNED OUT", cookie);
   WriteLog(log);
 
   snprintf(response, sizeof(response) - 1,
-              "HTTP/1.1 302 Found\r\n"
-              "Content-Type: application/json\r\n"
-              "Set-Cookie: token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; HttpOnly; Secure\r\n"
-              "Location: /\r\n"
-              "Content-Length: 0\r\n"
-              "Connection: close\r\n\r\n");
+           "HTTP/1.1 302 Found\r\n"
+           "Content-Type: application/json\r\n"
+           "Set-Cookie: token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; HttpOnly; Secure\r\n"
+           "Location: /\r\n"
+           "Content-Length: 0\r\n"
+           "Connection: close\r\n\r\n");
 
   send(client_fd, response, strlen(response), 0);
 }
 
-//POST /sign-in
+// POST /sign-up
 void handleSignUp(const char *request, const int client_fd)
 {
   char username[256], password[256];
@@ -129,7 +184,7 @@ void handleSignUp(const char *request, const int client_fd)
     char response[1024] = {0};
     char cmd[1024];
 
-    body += 4;  // Skip the headers to get to the body
+    body += 4; // Skip the headers to get to the body
     char *token = strtok(body, "&");
 
     while (token != NULL)
@@ -159,7 +214,7 @@ void handleSignUp(const char *request, const int client_fd)
                "Content-Type: application/json\r\n\r\n"
                "{\"error\": \"Internal Server Error\", \"message\": \"An unexpected error occurred on the server.\"}\r\n");
       send(client_fd, response, strlen(response), 0);
-    }    
+    }
     else if (result == 1)
     {
       // Username already exists, send error
@@ -189,10 +244,11 @@ void handleSignUp(const char *request, const int client_fd)
         int content_length = strlen(message);
 
         snprintf(response, sizeof(response) - 1,
-                "HTTP/1.1 201 Created\r\n"
-                "Content-Type: application/json\r\n"
-                "Content-Length: %d\r\n\r\n"
-                "%s\r\n", content_length, message);
+                 "HTTP/1.1 201 Created\r\n"
+                 "Content-Type: application/json\r\n"
+                 "Content-Length: %d\r\n\r\n"
+                 "%s\r\n",
+                 content_length, message);
         send(client_fd, response, strlen(response), 0);
 
         char log[1024] = {0};

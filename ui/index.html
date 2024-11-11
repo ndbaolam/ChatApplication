@@ -146,6 +146,7 @@
             type="password"
             id="confirm-password"
             placeholder="Confirm your password"
+            name="confirmPassword"
             required
           />
         </div>
@@ -187,12 +188,22 @@
           },
           body: data.toString(),
         })
-          .then((response) => response.json())
+        .then((response) => {
+          if (!response.ok) {  // If response is not OK (4xx/5xx error)
+            return response.json().then((errorData) => {
+              throw new Error(errorData.message || 'An error occurred');
+            });
+          }
+          return response.json();
+        })
           .then((responseData) => {
-            alert(responseData.message);
+            event.target.username.value = '';
+            event.target.password.value = '';
+            event.target.confirmPassword.value = '';
+            alert(responseData.message || 'Operation successful!');
           })
           .catch((error) => {
-            alert(error);
+            alert('Error: ' + error.message);
             console.error("Error:", error);
           });
       });

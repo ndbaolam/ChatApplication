@@ -16,5 +16,6 @@ void Serve404(const int);
 void RedirectRespose(const char *, const char *, const int);
 char *GetCookieFromRequest(const char *, const char *);
 void WriteLog(const char *);
+char *LoadContentFile(const char *);
 
 #endif

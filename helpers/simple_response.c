@@ -37,13 +37,13 @@ void ServeStaticFile(const char *filename, const int client_fd)
     char content_length_header[50];
     snprintf(content_length_header, sizeof(content_length_header), "Content-Length: %ld\r\n", content_length);
     Append(&response, content_length_header);
-    Append(&response, "\r\n"); // End headers
+    Append(&response, "\r\n"); 
 
     char *html_content = malloc(content_length + 1);
     if (html_content)
     {
         fread(html_content, 1, content_length, html);
-        html_content[content_length] = '\0'; // Null-terminate HTML content
+        html_content[content_length] = '\0'; 
 
         Append(&response, html_content);
         free(html_content);
@@ -58,6 +58,32 @@ void ServeStaticFile(const char *filename, const int client_fd)
     fclose(html);
     free(response);
 }
+
+char *LoadContentFile(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);  
+
+    char *buffer = malloc(file_size + 1);
+    if (!buffer) {
+        perror("Memory allocation failed");
+        fclose(file);
+        return NULL;
+    }
+    
+    fread(buffer, 1, file_size, file);
+    buffer[file_size] = '\0';  
+
+    fclose(file);
+    return buffer;  
+}
+
 
 void RedirectRespose(const char *redirect_url, const char *cookie, const int client_socket) {
     char response[1024] = {0};
@@ -108,13 +134,13 @@ void Serve404(const int client_fd) {
     char content_length_header[50];
     snprintf(content_length_header, sizeof(content_length_header), "Content-Length: %ld\r\n", content_length);
     Append(&response, content_length_header);
-    Append(&response, "\r\n"); // End headers
+    Append(&response, "\r\n"); 
 
     char *html_content = malloc(content_length + 1);
     if (html_content)
     {
         fread(html_content, 1, content_length, html);
-        html_content[content_length] = '\0'; // Null-terminate HTML content
+        html_content[content_length] = '\0'; 
 
         Append(&response, html_content);
         free(html_content);

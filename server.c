@@ -17,18 +17,16 @@ sem_t mutex;
 PGconn *psql;
 pthread_t *tid = NULL;
 
-void signal_handler(int signum) {
+void signal_handler(int signum) {  
   if(signum == SIGINT){
+    printf("\nCaught signal %d (SIGINT). Exiting gracefully...\n", signum);   
     close(fd);
     if (psql != NULL) {
       PQfinish(psql);
-      printf("\nDisconnected from the database.\n");
+      printf("Disconnected from the database.\n");
     }
-    for(int i = 0; i < N; i++) {
-      pthread_join(tid[i], NULL);
-    }
-    sem_destroy(&mutex);
-    printf("Caught signal %d (SIGINT). Exiting gracefully...\n", signum);   
+    
+    sem_destroy(&mutex);    
     exit(EXIT_SUCCESS);
   }
 }
