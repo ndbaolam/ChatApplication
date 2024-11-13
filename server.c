@@ -75,6 +75,11 @@ void *handle_client(void *args) {
       handleUser(request, c);
     }
 
+    //POST /user-info
+    if(strcmp(path, "/user-info") == 0 && strcmp(method, "POST") == 0) {
+      handleGetUserInfo(request, c);
+    }
+
     Serve404(c);
     memset(request, 0, sizeof(request));
   }

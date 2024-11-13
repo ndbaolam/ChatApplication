@@ -85,7 +85,7 @@ char *LoadContentFile(const char *filename) {
 }
 
 
-void RedirectRespose(const char *redirect_url, const char *cookie, const int client_socket) {
+void RedirectResponse(const char *redirect_url, const char *cookie, const int client_socket) {
     char response[1024] = {0};
     if(!cookie) {
         snprintf(response, sizeof(response) - 1,

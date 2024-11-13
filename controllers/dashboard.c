@@ -7,5 +7,5 @@ void handleDashBoard(const char *request, const int clien_fd) {
     return;
   }
 
-  RedirectRespose("user-info", cookie, clien_fd);
+  RedirectResponse("user-info", cookie, clien_fd);
 }

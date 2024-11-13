@@ -11,6 +11,7 @@ void handleSignIn(const char *, const int);
 void handleSignUp(const char *, const int);
 void handleDashBoard(const char *, const int);
 void handleUser(const char *, const int);
+void handleGetUserInfo(const char *, const int);
 void handleSignOut(const char *, const int);
 
 #endif

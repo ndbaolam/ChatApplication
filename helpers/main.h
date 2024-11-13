@@ -13,9 +13,12 @@ PGconn *psql;
 void Append(char **, const char *);
 void ServeStaticFile(const char *, const int );
 void Serve404(const int);
-void RedirectRespose(const char *, const char *, const int);
+void RedirectResponse(const char *, const char *, const int);
 char *GetCookieFromRequest(const char *, const char *);
 void WriteLog(const char *);
 char *LoadContentFile(const char *);
+
+char *ExecDBQueryJSONFormat(PGconn *, const char *);
+int ExecDBCommand(PGconn *, const char *);
 
 #endif

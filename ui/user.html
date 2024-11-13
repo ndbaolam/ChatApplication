@@ -140,24 +140,12 @@
   </div>
 
   <script>
-    function acceptRequest(username, group) {      
-      alert(`Accepted request from ${username} to join ${group}`);      
-      removeRequest(username, group);
-    }
+    const response = await fetch("/user-info", {
+      method: "POST",      
+    });
+    const data = await response.json();
 
-    function declineRequest(username, group) {
-      alert(`Declined request from ${username} to join ${group}`);
-      removeRequest(username, group);
-    }
-
-    function removeRequest(username, group) {
-      const requests = document.querySelectorAll('.group-requests li');
-      requests.forEach(request => {
-        if (request.textContent.includes(username) && request.textContent.includes(group)) {
-          request.remove();
-        }
-      });
-    }    
+    
   </script>
 
 </body>

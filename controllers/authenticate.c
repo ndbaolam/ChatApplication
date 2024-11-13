@@ -85,7 +85,7 @@ void handleSignIn(const char *request, const int client_fd)
       sprintf(log, "USER %s HAS SIGNED IN", username);
       WriteLog(log);
 
-      RedirectRespose("user-info", username, client_fd);
+      RedirectResponse("user-info", username, client_fd);
     }
   }
   else
