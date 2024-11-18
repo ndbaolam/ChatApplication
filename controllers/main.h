@@ -13,5 +13,6 @@ void handleDashBoard(const char *, const int);
 void handleUser(const char *, const int);
 void handleGetUserInfo(const char *, const int);
 void handleSignOut(const char *, const int);
+void handleSendRequest(const char *, const int);
 
 #endif

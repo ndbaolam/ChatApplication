@@ -35,7 +35,7 @@ void *handle_client(void *args) {
   int c = *((int *) args);
   free(args);
 
-  char request[1024] = {0};
+  char request[4096] = {0};
   int bytes_received;
 
   while ((bytes_received = recv(c, request, sizeof(request) - 1, 0)) > 0) {
@@ -78,6 +78,11 @@ void *handle_client(void *args) {
     //POST /user-info
     if(strcmp(path, "/user-info") == 0 && strcmp(method, "POST") == 0) {
       handleGetUserInfo(request, c);
+    }
+
+    //POST /send-request
+    if(strcmp(path, "/send-request") == 0 && strcmp(method, "POST") == 0) {
+      handleSendRequest(request, c);
     }
 
     Serve404(c);

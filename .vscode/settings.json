@@ -3,6 +3,7 @@
   "files.associations": {
     "datasource.c": "cpp",
     "cmath": "c",
-    "authenticate.c": "cpp"
+    "authenticate.c": "cpp",
+    "logger.c": "cpp"
   }
 }

@@ -2,5 +2,5 @@ server
 !server.c
 ./.vscode
 log.txt
-
+test*
 #git rm --cached <file>

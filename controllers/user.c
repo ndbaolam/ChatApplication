@@ -148,3 +148,149 @@ void handleGetUserInfo(const char *request, const int client_fd)
 
   send(client_fd, response, strlen(response), 0);
 }
+
+// POST /send-request
+void handleSendRequest(const char *request, const int client_fd)
+{  
+  char *dup_req = strdup(request);
+  char *cookie = strstr(request, "token=");  
+  if (!cookie)
+  {
+    RedirectResponse("/", NULL, client_fd);
+    return;
+  }
+
+  char *safe_cookie = cookie + 6;
+  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';
+
+  char query[512] = {0};
+  snprintf(query, sizeof(query), "SELECT user_id FROM users WHERE username='%s';", safe_cookie);
+  PGresult *res = PQexec(psql, query);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
+  {
+    printf("Error 1\n");
+    PQclear(res);
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  int sender_id = atoi(PQgetvalue(res, 0, 0));
+  PQclear(res);
+    
+  char *body = strstr(dup_req, "username=");  
+  if (!body)
+  {
+    printf("Error 2\n");
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+    
+  char user_received[32] = {0};
+  if (strncmp(body, "username=", 9) == 0)
+  {
+    strncpy(user_received, body + 9, sizeof(user_received) - 1);
+    user_received[sizeof(user_received) - 1] = '\0';
+  }
+
+  if (!user_received)
+  {
+    printf("Error 3\n");
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  memset(query, 0, sizeof(query));
+  snprintf(query, sizeof(query), "SELECT user_id FROM users WHERE username='%s';", user_received);  
+  res = PQexec(psql, query);
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
+  {
+    printf("Error 4\n");    
+    PQclear(res);
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  int receiver_id = atoi(PQgetvalue(res, 0, 0));
+  PQclear(res);
+
+  snprintf(query, sizeof(query),
+           "INSERT INTO friend_requests (sender_id, receiver_id, status) "
+           "VALUES (%d, %d, 'pending');",
+           sender_id, receiver_id);
+  res = PQexec(psql, query);
+
+  if (PQresultStatus(res) != PGRES_COMMAND_OK)
+  {
+    printf("Error 5\n");
+    PQclear(res);
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  PQclear(res);
+
+  // Send success response
+  char response[4096] = {0};
+  char mess[512] = {0};
+  snprintf(mess, sizeof(mess) - 1, "{\"message\": \"Friend request sent successfully.\"}");
+  snprintf(response, sizeof(response) - 1,
+           "HTTP/1.1 200 OK\r\n"
+           "Content-Type: application/json\r\n"
+           "Content-Length: %lu\r\n"
+           "Connection: close\r\n\r\n"
+           "%s",
+           strlen(mess), mess);
+  send(client_fd, response, strlen(response), 0);
+}
