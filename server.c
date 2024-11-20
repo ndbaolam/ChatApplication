@@ -95,6 +95,11 @@ void *handle_client(void *args) {
       handleDeclineAddFriendRequest(request, c);
     }
 
+    // POST /remove-friend
+    if(strcmp(path, "/remove-friend") == 0 && strcmp(method, "POST") == 0) {
+      handleRemoveFriend(request, c);
+    }
+
     Serve404(c);
     memset(request, 0, sizeof(request));
   }

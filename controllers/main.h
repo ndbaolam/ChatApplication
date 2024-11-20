@@ -16,5 +16,6 @@ void handleSignOut(const char *, const int);
 void handleSendAddFriendRequest(const char *, const int);
 void handleAcceptAddFriendRequest(const char *, const int);
 void handleDeclineAddFriendRequest(const char *, const int);
+void handleRemoveFriend(const char *, const int);
 
 #endif
