@@ -82,7 +82,17 @@ void *handle_client(void *args) {
 
     //POST /send-request
     if(strcmp(path, "/send-request") == 0 && strcmp(method, "POST") == 0) {
-      handleSendRequest(request, c);
+      handleSendAddFriendRequest(request, c);
+    }
+
+    // POST /accept-request
+    if(strcmp(path, "/accept-request") == 0 && strcmp(method, "POST") == 0) {
+      handleAcceptAddFriendRequest(request, c);
+    }
+
+    // POST /decline-request
+    if(strcmp(path, "/decline-request") == 0 && strcmp(method, "POST") == 0) {
+      handleDeclineAddFriendRequest(request, c);
     }
 
     Serve404(c);

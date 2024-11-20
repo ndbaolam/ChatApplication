@@ -7,19 +7,19 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS friend_requests (
-    request_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS friend_requests (    
     sender_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     receiver_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     status VARCHAR(10) CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(sender_id, receiver_id)
 );
 
-CREATE TABLE IF NOT EXISTS friends (
-    friend_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS friends (    
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     friend_user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, friend_user_id)
 );
 
 CREATE TABLE IF NOT EXISTS chat_groups (
@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS chat_groups (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS group_members (
-    member_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS group_members (    
     group_id INT REFERENCES chat_groups(group_id) ON DELETE CASCADE,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    role VARCHAR(10) CHECK (role IN ('member', 'admin')) DEFAULT 'member'
+    role VARCHAR(10) CHECK (role IN ('member', 'admin')) DEFAULT 'member',
+    PRIMARY KEY(group_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS group_messages (
