@@ -54,7 +54,7 @@ void handleGetUserInfo(const char *request, const int client_fd)
 
   // Process online users
   int online_user_count = PQntuples(online_res);
-  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"total_online\": %d, \"online_user\": \"", online_user_count);
+  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"total_online\": %d, \"online_users\": \"", online_user_count);
 
   for (int i = 0; i < online_user_count; i++)
   {
@@ -88,7 +88,7 @@ void handleGetUserInfo(const char *request, const int client_fd)
 
   // Process friend requests
   int total_requests = PQntuples(requests_res);
-  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"total_request\": %d, \"sender\": \"", total_requests);
+  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"total_request\": %d, \"senders\": \"", total_requests);
 
   for (int i = 0; i < total_requests; i++)
   {
@@ -131,9 +131,46 @@ void handleGetUserInfo(const char *request, const int client_fd)
       strcat(json, ", ");
     }
   }
-  strcat(json, "\"\n");
+  strcat(json, "\",\n");
 
   PQclear(friends_res);
+
+  //Get all groupchat
+  const char *groups_query =  "SELECT chat_groups.group_name FROM chat_groups "
+                              "JOIN group_members ON group_members.group_id = chat_groups.group_id "                              
+                              "JOIN users ON users.user_id = group_members.user_id "
+                              "WHERE users.username = $1;";
+  PGresult *groups_res = PQexecParams(psql, groups_query, 1, NULL, params, NULL, NULL, 0);
+
+  if (PQresultStatus(groups_res) != PGRES_TUPLES_OK)
+  {
+    fprintf(stderr, "Error executing friends query: %s\n", PQerrorMessage(psql));
+    PQclear(friends_res);
+    snprintf(response, sizeof(response) - 1,
+             "HTTP/1.1 500 Internal Server Error\r\n"
+             "Content-Type: application/json\r\n\r\n"
+             "{\"error\": \"Internal Server Error\", \"message\": \"An unexpected error occurred on the server.\"}\r\n");
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  int total_groups = PQntuples(groups_res);
+  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"total_group\": %d, \"groups\": \"", total_groups);
+
+  for (int i = 0; i < total_groups; i++)
+  {
+    strcat(json, PQgetvalue(groups_res, i, 0));
+    if (i < total_groups - 1)
+    {
+      strcat(json, ", ");
+    }
+  }
+  strcat(json, "\",\n");
+
+  PQclear(groups_res);
+
+  // Get username
+  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"username\": \"%s\"\n", cookie);
 
   // Closing the JSON object
   strcat(json, "}");
