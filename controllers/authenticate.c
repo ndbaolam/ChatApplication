@@ -97,54 +97,24 @@ void handleSignIn(const char *request, const int client_fd)
 // GET /sign-out
 void handleSignOut(const char *request, const int client_fd)
 {
-  // Get the "token" cookie from the request
-  char *cookie = GetCookieFromRequest(request, "token");
-
+  // remove s\r\n at the end
   char response[1024] = {0};
-  char cmd[1024];
-
+  char cmd[1024] = {0};
+  
+  char *dup_req = strdup(request);
+  char *cookie = strstr(request, "token=");  
   if (!cookie)
   {
-    char *htmlServe = LoadContentFile("ui/401.html");
-    if (htmlServe != NULL)
-    {
-      // Calculate content length
-      int content_length = strlen(htmlServe);
-
-      // Allocate a buffer for the entire HTTP response
-      char response[4096];
-
-      // Build the HTTP response headers
-      int header_length = snprintf(response, sizeof(response),
-                                   "HTTP/1.1 401 Unauthorized\r\n"
-                                   "Content-Type: text/html\r\n"
-                                   "Content-Length: %d\r\n"
-                                   "Connection: close\r\n\r\n",
-                                   content_length);
-
-      // Check if the response buffer can hold the headers and HTML content
-      if (header_length + content_length < sizeof(response))
-      {
-        // Append the HTML content to the response
-        strcpy(response + header_length, htmlServe);
-
-        // Send the response over the socket
-        send(client_fd, response, header_length + content_length, 0);
-      }
-      else
-      {
-        fprintf(stderr, "Response buffer too small to fit headers and content.\n");
-      }
-
-      free(htmlServe); // Free the HTML content buffer
-    }
+    RedirectResponse("/", NULL, client_fd);
     return;
   }
 
-  // remove s\r\n at the end
-  cookie[sizeof(cookie) - 2] = '\0';
+  char *safe_cookie = cookie + 6;
+  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';  
 
-  snprintf(cmd, sizeof(cmd) - 1, "UPDATE users SET is_online='false' WHERE username='%s';", cookie);
+  printf("DEBUG: %s\n", safe_cookie);
+
+  snprintf(cmd, sizeof(cmd) - 1, "UPDATE users SET is_online='false' WHERE username='%s';", safe_cookie);
   int result = ExecDBCommand(psql, cmd);
 
   if (result == -1)
@@ -160,7 +130,7 @@ void handleSignOut(const char *request, const int client_fd)
 
   char log[1024] = {0};
 
-  snprintf(log, sizeof(log), "USER %s HAS SIGNED OUT", cookie);
+  snprintf(log, sizeof(log), "USER %s HAS SIGNED OUT", safe_cookie);
   WriteLog(log);
 
   snprintf(response, sizeof(response) - 1,

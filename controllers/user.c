@@ -12,18 +12,19 @@ void handleUser(const char *request, const int client_fd)
 // POST /user-info
 void handleGetUserInfo(const char *request, const int client_fd)
 {
-  char *cookie = GetCookieFromRequest(request, "token");
-
+  char *dup_req = strdup(request);
+  char *cookie = strstr(request, "token=");  
   if (!cookie)
   {
     RedirectResponse("/", NULL, client_fd);
     return;
   }
 
-  cookie[sizeof(cookie) - 2] = '\0';
+  char *safe_cookie = cookie + 6;
+  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';  
 
   // Query user information
-  const char *current_username = cookie;
+  const char *current_username = safe_cookie;
   if (!current_username)
   {
     RedirectResponse("/", NULL, client_fd);
@@ -102,9 +103,11 @@ void handleGetUserInfo(const char *request, const int client_fd)
   PQclear(requests_res);
 
   // Query user's friends
-  const char *friends_query = "SELECT users.username FROM friends "
-                              "JOIN users ON friends.friend_user_id = users.user_id "
-                              "WHERE friends.user_id = (SELECT user_id FROM users WHERE username = $1)";
+  const char *friends_query =   "SELECT u2.username FROM friends "
+                                "JOIN users u1 ON u1.user_id = friends.friend_user_id "
+                                "JOIN users u2 ON u2.user_id = friends.user_id "
+                                "WHERE u1.username = $1;";
+  
   PGresult *friends_res = PQexecParams(psql, friends_query, 1, NULL, params, NULL, NULL, 0);
 
   if (PQresultStatus(friends_res) != PGRES_TUPLES_OK)
@@ -170,7 +173,7 @@ void handleGetUserInfo(const char *request, const int client_fd)
   PQclear(groups_res);
 
   // Get username
-  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"username\": \"%s\"\n", cookie);
+  snprintf(json + strlen(json), sizeof(json) - strlen(json), "\"username\": \"%s\"\n", safe_cookie);
 
   // Closing the JSON object
   strcat(json, "}");
@@ -206,6 +209,7 @@ void handleSendAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -270,6 +274,7 @@ void handleSendAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -296,6 +301,7 @@ void handleSendAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK)
   {    
+    fprintf(stderr, "INSERT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -348,7 +354,7 @@ void handleAcceptAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 1\n");
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -416,7 +422,7 @@ void handleAcceptAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 4\n");    
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql)); 
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -445,7 +451,7 @@ void handleAcceptAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK)
   {
-    printf("Error 5\n");
+    fprintf(stderr, "UPDATE failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -467,13 +473,13 @@ void handleAcceptAddFriendRequest(const char *request, const int client_fd)
   memset(query, 0, sizeof(query));
   snprintf(query, sizeof(query),
             "INSERT INTO friends(user_id, friend_user_id)"
-            "VALUES (%d, %d);",
-           receiver_id, sender_id);
+            "VALUES ('%d', '%d'), ('%d', '%d');",
+           receiver_id, sender_id, sender_id, receiver_id);
   res = PQexec(psql, query);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK)
   {
-    printf("Error 6\n");
+    fprintf(stderr, "INSERT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -526,7 +532,7 @@ void handleDeclineAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 1\n");
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -594,7 +600,7 @@ void handleDeclineAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 4\n");    
+    fprintf(stderr, "SELECT failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -623,7 +629,7 @@ void handleDeclineAddFriendRequest(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK)
   {
-    printf("Error 5\n");
+    fprintf(stderr, "UPDATE failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -676,7 +682,7 @@ void handleRemoveFriend(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 1\n");
+    fprintf(stderr, "Select failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -744,7 +750,7 @@ void handleRemoveFriend(const char *request, const int client_fd)
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
   {
-    printf("Error 4\n");    
+    fprintf(stderr, "Select failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -766,14 +772,15 @@ void handleRemoveFriend(const char *request, const int client_fd)
   // Update friends table
   memset(query, 0, sizeof(query));
   snprintf(query, sizeof(query),
-            "DELETE FROM friends"
-            "WHERE user_id='%d' AND friend_user_id='%d';",
-           user_id, friend_user_id);
+          "DELETE FROM friends "
+          "WHERE (user_id='%d' AND friend_user_id='%d') "
+          "OR (user_id='%d' AND friend_user_id='%d');",
+          user_id, friend_user_id, friend_user_id, user_id);
   res = PQexec(psql, query);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK)
   {
-    printf("Error 5\n");
+    fprintf(stderr, "Delete failed: %s", PQerrorMessage(psql));
     PQclear(res);
     char response[4096] = {0};
     char mess[512] = {0};
@@ -790,6 +797,34 @@ void handleRemoveFriend(const char *request, const int client_fd)
   }
 
   PQclear(res);
+
+  memset(query, 0, sizeof(query));
+  snprintf(query, sizeof(query),
+          "DELETE FROM friend_requests "
+          "WHERE (sender_id='%d' AND receiver_id='%d') "
+          "OR (sender_id='%d' AND receiver_id='%d');",
+          user_id, friend_user_id, friend_user_id, user_id);
+  res = PQexec(psql, query);
+
+  if (PQresultStatus(res) != PGRES_COMMAND_OK)
+  {
+    fprintf(stderr, "DELETE failed: %s", PQerrorMessage(psql));
+    PQclear(res);
+    char response[4096] = {0};
+    char mess[512] = {0};
+    snprintf(mess, sizeof(mess) - 1, "{\"error\": \"Invalid friend request data.\"}");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(mess), mess);
+    send(client_fd, response, strlen(response), 0);
+    return;
+  }
+
+  PQclear(res);  
 
   // Send success response
   char response[4096] = {0};

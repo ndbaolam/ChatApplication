@@ -83,7 +83,8 @@
         background-color: #dc3545;
         color: white;
       }
-      .back-btn {
+      .back-btn,
+      .add-frd-btn {
         display: inline-block;
         margin-top: 20px;
         padding: 10px 15px;
@@ -93,7 +94,20 @@
         border-radius: 5px;
         border: none;
       }
-      .back-btn:hover {
+      .remove-frd-btn {
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #ff2600;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        border: none;
+      }
+      .remove-frd-btn:hover {
+        background-color: #b30000;
+      }
+      .back-btn:hover,
+      .add-frd-btn:hover {
         background-color: #0056b3;
       }
     </style>
@@ -126,8 +140,7 @@
       <!-- User's Group Chat Requests -->
       <div class="group-requests">
         <h2>Requests Friend</h2>
-        <ul id="requests-friend">          
-        </ul>
+        <ul id="requests-friend"></ul>
       </div>
 
       <form action="/sign-out" method="get">
@@ -137,11 +150,90 @@
 
     <script>
       const acceptRequest = (sender) => {
-
+        fetch("/accept-request", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `username=${sender}`,
+        })
+          .then((res) => res.json())
+          .then((mess) => {
+            alert(mess.message);
+          })
+          .catch((e) => {
+            console.error(e);
+            alert(e);
+          });
       };
 
       const declineRequest = (sender) => {
+        if (!sender) {
+          alert("Invalid");
+          return;
+        }
 
+        fetch("/decline-request", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `username=${sender}`,
+        })
+          .then((res) => res.json())
+          .then((mess) => {
+            alert(mess.message);
+          })
+          .catch((e) => {
+            console.error(e);
+            alert(e);
+          });
+      };
+
+      const sendRequest = (reciever) => {
+        if (!reciever) {
+          alert("Invalid");
+          return;
+        }
+
+        fetch("/send-request", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `username=${reciever}`,
+        })
+          .then((res) => res.json())
+          .then((mess) => {
+            alert(mess.message);
+          })
+          .catch((e) => {
+            console.error(e);
+            alert(e);
+          });
+      };
+
+      const removeFriend = (friend) => {
+        if (!friend) {
+          alert("Invalid");
+          return;
+        }
+
+        fetch("/remove-friend", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `username=${friend}`,
+        })
+          .then((res) => res.json())
+          .then((mess) => {
+            alert(mess.message);
+          })
+          .catch((e) => {
+            console.error(e);
+            alert(e);
+          });
       };
 
       fetch("/user-info", {
@@ -177,15 +269,25 @@
           }
 
           data.online_users.split(",").forEach((user) => {
-            document.querySelector(
-              "#online-users"
-            ).innerHTML += `<li><a href="/chat-user/${user}">${user}</a></li>`;
+            if (!data.friends.includes(user)) {
+              document.querySelector("#online-users").innerHTML += `
+                <li>
+                  <span><strong>Username:</strong> ${user} </span>
+                  <button class="add-frd-btn" onclick="sendRequest('${user}')">
+                    Add Friend
+                  </button>
+                </li>`;
+            } else {
+              document.querySelector("#online-users").innerHTML += `
+                <li>
+                  <span><strong>Username:</strong> ${user} </span>                  
+                </li>`;
+            }
           });
 
-          if(data.senders.length > 0) {
-            data.senders.split(",").forEach(sender => {
-            document.querySelector("#requests-friend").innerHTML += 
-            `
+          if (data.senders.length > 0) {
+            data.senders.split(",").forEach((sender) => {
+              document.querySelector("#requests-friend").innerHTML += `
                 <li class="pending">
                   <span><strong>Username:</strong> ${sender} </span>
                   <div>
@@ -200,20 +302,27 @@
               `;
             });
           } else {
-            document.querySelector("#requests-friend").innerHTML = `<li>None</li>`;
-          }    
-          
-          if(data.friends.length > 0) {
-            data.friends.split(",").forEach(frd => {
-            document.querySelector("#friends").innerHTML += `
-              <li>${frd}</li>
+            document.querySelector(
+              "#requests-friend"
+            ).innerHTML = `<li>None</li>`;
+          }
+
+          if (data.friends.length > 0) {
+            data.friends.split(",").forEach((frd) => {
+              document.querySelector("#friends").innerHTML += `
+              <li>
+                <a href="/chat-user/${frd}">${frd}</a>
+                <button class="remove-frd-btn" onclick="removeFriend('${frd}')">
+                  Remove Friend
+                </button>
+              </li>
             `;
             });
           } else {
             document.querySelector("#friends").innerHTML += `
               <li>None</li>
             `;
-          }         
+          }
         })
         .catch((error) => {
           console.error("Error fetching user info:", error);
