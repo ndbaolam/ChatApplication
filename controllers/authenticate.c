@@ -26,20 +26,12 @@ void handleSignIn(const char *request, const int client_fd)
       token = strtok(NULL, "&");
     }
 
-    sprintf(cmd, "SELECT * FROM users WHERE username='%s' AND password='%s';", username, password);
-    int result = ExecDBCommand(psql, cmd);
-    if (result < 0)
-    {
-      perror("Database error");
+    sprintf(cmd, "SELECT user_id FROM users WHERE username='%s' AND password='%s';", username, password);
+    PGresult *res = PQexec(psql, cmd);
 
-      snprintf(response, sizeof(response) - 1,
-               "HTTP/1.1 500 Internal Server Error\r\n"
-               "Content-Type: application/json\r\n\r\n"
-               "{\"error\": \"Internal Server Error\", \"message\": \"An unexpected error occurred on the server.\"}\r\n");
-      send(client_fd, response, strlen(response), 0);
-    }
-    else if (result == 0)
+    if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
     {
+      // Invalid login
       char *htmlServe = LoadContentFile("ui/401.html");
       if (htmlServe != NULL)
       {
@@ -73,20 +65,39 @@ void handleSignIn(const char *request, const int client_fd)
 
         free(htmlServe); // Free the HTML content buffer
       }
+      PQclear(res);
+      return;
     }
-    else if (result == 1)
+
+    // Get user_id
+    int user_id = atoi(PQgetvalue(res, 0, 0));
+    PQclear(res);
+
+    // Update user's online status
+    snprintf(cmd, sizeof(cmd), "UPDATE users SET is_online='true' WHERE username='%s';", username);
+    int result = ExecDBCommand(psql, cmd);
+
+    if (result < 0)
     {
-      memset(cmd, 0, sizeof(cmd));
-
-      sprintf(cmd, "UPDATE users SET is_online='true' WHERE username='%s';", username);
-      result = ExecDBCommand(psql, cmd);
-
-      char log[1024] = {0};
-      sprintf(log, "USER %s HAS SIGNED IN", username);
-      WriteLog(log);
-
-      RedirectResponse("user-info", username, client_fd);
+      perror("Failed to update user status");
+      snprintf(response, sizeof(response),
+               "HTTP/1.1 500 Internal Server Error\r\n"
+               "Content-Type: application/json\r\n\r\n"
+               "{\"error\": \"Internal Server Error\", \"message\": \"An unexpected error occurred on the server.\"}\r\n");
+      send(client_fd, response, strlen(response), 0);
+      return;
     }
+
+    // Add user to online users
+    add_online_user(user_id, client_fd);
+
+    // Log the sign-in event
+    char log[1024] = {0};
+    snprintf(log, sizeof(log), "USER %s HAS SIGNED IN", username);
+    WriteLog(log);
+
+    // Redirect to user-info
+    RedirectResponse("user-info", username, client_fd);
   }
   else
   {
@@ -97,43 +108,69 @@ void handleSignIn(const char *request, const int client_fd)
 // GET /sign-out
 void handleSignOut(const char *request, const int client_fd)
 {
-  // remove s\r\n at the end
   char response[1024] = {0};
   char cmd[1024] = {0};
-  
+
+  // Duplicate request for safe parsing
   char *dup_req = strdup(request);
-  char *cookie = strstr(request, "token=");  
-  if (!cookie)
+  if (!dup_req)
   {
-    RedirectResponse("/", NULL, client_fd);
-    return;
-  }
-
-  char *safe_cookie = cookie + 6;
-  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';  
-
-  printf("DEBUG: %s\n", safe_cookie);
-
-  snprintf(cmd, sizeof(cmd) - 1, "UPDATE users SET is_online='false' WHERE username='%s';", safe_cookie);
-  int result = ExecDBCommand(psql, cmd);
-
-  if (result == -1)
-  {
-    snprintf(response, sizeof(response) - 1,
+    // Memory allocation failure
+    snprintf(response, sizeof(response),
              "HTTP/1.1 500 Internal Server Error\r\n"
-             "Content-Type: text/html\r\n"
+             "Content-Type: text/plain\r\n"
              "Content-Length: 0\r\n"
              "Connection: close\r\n\r\n");
     send(client_fd, response, strlen(response), 0);
     return;
   }
 
-  char log[1024] = {0};
+  // Find the token
+  char *cookie = strstr(dup_req, "token=");
+  if (!cookie)
+  {
+    free(dup_req);
+    RedirectResponse("/", NULL, client_fd);
+    return;
+  }
 
+  // Extract and sanitize token
+  char *safe_cookie = cookie + 6; // Skip "token="
+  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';
+
+  printf("DEBUG: Token received: %s\n", safe_cookie);
+
+  // Update user status in the database
+  snprintf(cmd, sizeof(cmd), "UPDATE users SET is_online='false' WHERE username='%s';", safe_cookie);
+  int result = ExecDBCommand(psql, cmd);
+
+  if (result == -1)
+  {
+    perror("Database update failed");
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 500 Internal Server Error\r\n"
+             "Content-Type: text/plain\r\n"
+             "Content-Length: 0\r\n"
+             "Connection: close\r\n\r\n");
+    send(client_fd, response, strlen(response), 0);
+    free(dup_req);
+    return;
+  }
+
+  // Remove user from online users array
+  int user_id = GetUserIDByUsername(psql, safe_cookie);
+  if (user_id != -1)
+  {
+    remove_online_user(user_id);
+  }
+
+  // Log the sign-out event
+  char log[1024];
   snprintf(log, sizeof(log), "USER %s HAS SIGNED OUT", safe_cookie);
   WriteLog(log);
 
-  snprintf(response, sizeof(response) - 1,
+  // Respond to client with a redirect and cookie clearance
+  snprintf(response, sizeof(response),
            "HTTP/1.1 302 Found\r\n"
            "Content-Type: application/json\r\n"
            "Set-Cookie: token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; HttpOnly; Secure\r\n"
@@ -142,7 +179,11 @@ void handleSignOut(const char *request, const int client_fd)
            "Connection: close\r\n\r\n");
 
   send(client_fd, response, strlen(response), 0);
+
+  // Free allocated memory
+  free(dup_req);
 }
+
 
 // POST /sign-up
 void handleSignUp(const char *request, const int client_fd)

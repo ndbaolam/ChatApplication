@@ -4,6 +4,7 @@
 #include "../helpers/main.h"
 #include "./authenticate.c"
 #include "./dashboard.c"
+#include "./chatuser.c"
 #include "./user.c"
 // Add more as needed
 
@@ -17,5 +18,9 @@ void handleSendAddFriendRequest(const char *, const int);
 void handleAcceptAddFriendRequest(const char *, const int);
 void handleDeclineAddFriendRequest(const char *, const int);
 void handleRemoveFriend(const char *, const int);
+void handleChatUser(const char *, const int);
+void sendMessageToUser(const char *, const int);
+void sendMessageToUser(const char *, const int);
+void getAllMessages(const char *request, const int, const char *);
 
 #endif

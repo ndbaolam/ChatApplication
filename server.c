@@ -100,6 +100,23 @@ void *handle_client(void *args) {
       handleRemoveFriend(request, c);
     }
 
+    // GET /chat-user
+    if(strncmp(path, "/chat-user/", 11) == 0 && strcmp(method, "GET") == 0) {
+      handleChatUser(request, c);
+    }
+
+    // POST /chat-user
+    if(strncmp(path, "/chat-user/", 11) == 0 && strcmp(method, "POST") == 0) {
+      sendMessageToUser(request, c);
+    }
+
+    // GET /message/:user
+    if(strncmp(path, "/message/", 9) == 0 && strcmp(method, "GET") == 0) {
+      char *receiver = path + 9;
+      receiver[sizeof(receiver)] = '\0';
+      getAllMessages(request, c, receiver);
+    }
+
     Serve404(c);
     memset(request, 0, sizeof(request));
   }

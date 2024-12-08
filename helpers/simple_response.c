@@ -155,3 +155,27 @@ void Serve404(const int client_fd) {
     fclose(html);
     free(response);
 }
+
+void sendErrorResponse(const int client_fd, const char *message) {
+    char response[4096] = {0};
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(message), message);
+    send(client_fd, response, strlen(response), 0);
+}
+
+void sendSuccessResponse(const int client_fd, const char *message) {
+    char response[4096] = {0};
+    snprintf(response, sizeof(response),
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %lu\r\n"
+             "Connection: close\r\n\r\n"
+             "%s",
+             strlen(message), message);
+    send(client_fd, response, strlen(response), 0);
+}
