@@ -6,6 +6,7 @@
 #include "./dashboard.c"
 #include "./chatuser.c"
 #include "./user.c"
+#include "./group.c"
 // Add more as needed
 
 void handleSignIn(const char *, const int);
@@ -21,6 +22,9 @@ void handleRemoveFriend(const char *, const int);
 void handleChatUser(const char *, const int);
 void sendMessageToUser(const char *, const int);
 void sendMessageToUser(const char *, const int);
-void getAllMessages(const char *request, const int, const char *);
+void getAllMessages(const char *, const int, const char *);
+void createGroupChat(const char *, const int);
+void addUserToGroup(const char *, const int);
+void removeUserFromGroup(const char *, const int);
 
 #endif

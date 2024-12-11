@@ -184,7 +184,6 @@ void handleSignOut(const char *request, const int client_fd)
   free(dup_req);
 }
 
-
 // POST /sign-up
 void handleSignUp(const char *request, const int client_fd)
 {

@@ -85,9 +85,10 @@ char *ExecDBQueryJSONFormat(PGconn *conn, const char *cmd)
   {
     // SELECT command: Retrieve and print results
     int rows = PQntuples(res);
-    int cols = PQnfields(res);    
+    int cols = PQnfields(res);
 
-    if(rows == 0) {
+    if (rows == 0)
+    {
       return NULL;
     }
 

@@ -33,14 +33,16 @@ char *GetCookieFromRequest(const char *request, const char *cookie_name)
   return value;
 }
 
-char *UpdatedGetCookie(const char *request) {
-    char *dup_req = strdup(request);
-  char *cookie = strstr(request, "token=");  
-  if (!cookie) {    
+char *UpdatedGetCookie(const char *request)
+{
+  char *dup_req = strdup(request);
+  char *cookie = strstr(request, "token=");
+  if (!cookie)
+  {
     return NULL;
   }
 
   char *safe_cookie = cookie + 6;
-  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0'; 
-  return safe_cookie; 
+  safe_cookie[strcspn(safe_cookie, "\r\n")] = '\0';
+  return safe_cookie;
 }

@@ -21,7 +21,7 @@ void ServeStaticFile(const char *filename, const int client_fd)
     FILE *html = fopen(filename, "r");
     if (!html)
     {
-        fprintf(stderr, "%s: Missing file!?...", filename);        
+        fprintf(stderr, "%s: Missing file!?...", filename);
         close(client_fd);
         pthread_exit(NULL);
     }
@@ -37,13 +37,13 @@ void ServeStaticFile(const char *filename, const int client_fd)
     char content_length_header[50];
     snprintf(content_length_header, sizeof(content_length_header), "Content-Length: %ld\r\n", content_length);
     Append(&response, content_length_header);
-    Append(&response, "\r\n"); 
+    Append(&response, "\r\n");
 
     char *html_content = malloc(content_length + 1);
     if (html_content)
     {
         fread(html_content, 1, content_length, html);
-        html_content[content_length] = '\0'; 
+        html_content[content_length] = '\0';
 
         Append(&response, html_content);
         free(html_content);
@@ -59,62 +59,69 @@ void ServeStaticFile(const char *filename, const int client_fd)
     free(response);
 }
 
-char *LoadContentFile(const char *filename) {
+char *LoadContentFile(const char *filename)
+{
     FILE *file = fopen(filename, "r");
-    if (!file) {
+    if (!file)
+    {
         fprintf(stderr, "Error: Could not open file %s\n", filename);
         return NULL;
     }
 
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);  
+    fseek(file, 0, SEEK_SET);
 
     char *buffer = malloc(file_size + 1);
-    if (!buffer) {
+    if (!buffer)
+    {
         perror("Memory allocation failed");
         fclose(file);
         return NULL;
     }
-    
+
     fread(buffer, 1, file_size, file);
-    buffer[file_size] = '\0';  
+    buffer[file_size] = '\0';
 
     fclose(file);
-    return buffer;  
+    return buffer;
 }
 
-
-void RedirectResponse(const char *redirect_url, const char *cookie, const int client_socket) {
+void RedirectResponse(const char *redirect_url, const char *cookie, const int client_socket)
+{
     char response[1024] = {0};
-    if(!cookie) {
+    if (!cookie)
+    {
         snprintf(response, sizeof(response) - 1,
-            "HTTP/1.1 302 Found\r\n"
-            "Location: %s\r\n"
-            "Content-Length: 0\r\n"
-            "Connection: close\r\n\r\n",
-            redirect_url);
+                 "HTTP/1.1 302 Found\r\n"
+                 "Location: %s\r\n"
+                 "Content-Length: 0\r\n"
+                 "Connection: close\r\n\r\n",
+                 redirect_url);
         send(client_socket, response, strlen(response), 0);
-    } else {
+    }
+    else
+    {
         time_t now = time(NULL);
         time_t expire = now + 10 * 60;
         struct tm *tm_info = gmtime(&expire);
 
         char date_str[30] = {0};
         strftime(date_str, sizeof(date_str) - 1, "%a, %d %b %Y %H:%M:%S GMT", tm_info);
-        
+
         snprintf(response, sizeof(response) - 1,
-            "HTTP/1.1 302 Found\r\n"
-            "Location: %s\r\n"
-            "Set-Cookie: token=%s; expires=%s; Path=/; HttpOnly\r\n"
-            "Content-Length: 0\r\n"
-            "Connection: close\r\n\r\n",
-            redirect_url, cookie, date_str);
+                 "HTTP/1.1 302 Found\r\n"
+                 "Location: %s\r\n"
+                 "Set-Cookie: token=%s; expires=%s; Path=/; HttpOnly\r\n"
+                 "Content-Length: 0\r\n"
+                 "Connection: close\r\n\r\n",
+                 redirect_url, cookie, date_str);
         send(client_socket, response, strlen(response), 0);
-    } 
+    }
 }
 
-void Serve404(const int client_fd) {
+void Serve404(const int client_fd)
+{
     FILE *html = fopen("ui/404.html", "r");
     if (!html)
     {
@@ -134,13 +141,13 @@ void Serve404(const int client_fd) {
     char content_length_header[50];
     snprintf(content_length_header, sizeof(content_length_header), "Content-Length: %ld\r\n", content_length);
     Append(&response, content_length_header);
-    Append(&response, "\r\n"); 
+    Append(&response, "\r\n");
 
     char *html_content = malloc(content_length + 1);
     if (html_content)
     {
         fread(html_content, 1, content_length, html);
-        html_content[content_length] = '\0'; 
+        html_content[content_length] = '\0';
 
         Append(&response, html_content);
         free(html_content);
@@ -156,7 +163,8 @@ void Serve404(const int client_fd) {
     free(response);
 }
 
-void sendErrorResponse(const int client_fd, const char *message) {
+void sendErrorResponse(const int client_fd, const char *message)
+{
     char response[4096] = {0};
     snprintf(response, sizeof(response),
              "HTTP/1.1 400 Bad Request\r\n"
@@ -168,7 +176,8 @@ void sendErrorResponse(const int client_fd, const char *message) {
     send(client_fd, response, strlen(response), 0);
 }
 
-void sendSuccessResponse(const int client_fd, const char *message) {
+void sendSuccessResponse(const int client_fd, const char *message)
+{
     char response[4096] = {0};
     snprintf(response, sizeof(response),
              "HTTP/1.1 200 OK\r\n"
